@@ -1,4 +1,4 @@
-const VERSION = "0.4.0";
+const VERSION = "0.5.0";
 
 class HAKidTrackerCard extends HTMLElement {
   constructor() {
@@ -253,7 +253,7 @@ class HAKidTrackerCard extends HTMLElement {
       ha-card{position:relative;overflow:hidden;padding:18px;border-left:4px solid var(--accent);border-radius:20px;background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
       ha-card:after{content:"";position:absolute;right:-34px;bottom:-38px;width:148px;height:148px;border-radius:50%;background:color-mix(in srgb,var(--accent) 10%,transparent);pointer-events:none}
       .head{display:flex;align-items:center;gap:13px}
-      .back{flex:0 0 38px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);border-radius:50%;background:color-mix(in srgb,var(--panel) 82%,transparent);color:var(--text);cursor:pointer}
+      .back{flex:0 0 38px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--edge));border-radius:50%;background:color-mix(in srgb,var(--panel) 82%,transparent);color:var(--text);cursor:pointer}
       .back:hover{border-color:var(--accent);transform:translateX(-1px)}
       .back ha-icon{--mdc-icon-size:20px}
       .portrait{position:relative;flex:0 0 54px;width:54px;height:54px;border-radius:50%;background-size:cover;background-position:center;background-color:color-mix(in srgb,var(--accent) 18%,transparent)}
@@ -277,7 +277,7 @@ class HAKidTrackerCard extends HTMLElement {
       .ring-center strong{font-size:19px;line-height:1}
       .ring-center span{margin-top:3px;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
       .activity-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-      .stat{padding:9px;border:1px solid var(--edge);border-radius:12px;text-align:center}
+      .stat{padding:9px;border:1px solid color-mix(in srgb,var(--accent) 16%,transparent);border-left:3px solid var(--accent);border-radius:12px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 7%,transparent),transparent 55%);box-shadow:0 4px 12px rgba(0,0,0,.1);text-align:center}
       .stat span{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;font-weight:700}
       .stat b{display:block;margin-top:4px;font-size:13px}
       .section-title{margin:16px 0 8px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
@@ -286,13 +286,13 @@ class HAKidTrackerCard extends HTMLElement {
       .gps-info{flex:1;min-width:0;display:flex;gap:14px}
       .gps-info div span{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;font-weight:700}
       .gps-info div b{display:block;margin-top:2px;font-size:12px}
-      .gps-btn{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:9px 14px;border:1px solid var(--edge);border-radius:12px;background:transparent;color:var(--text);font-size:11px;font-weight:700;cursor:pointer}
+      .gps-btn{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:9px 14px;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--edge));border-radius:12px;background:transparent;color:var(--text);font-size:11px;font-weight:700;cursor:pointer}
       .gps-btn:hover{border-color:var(--accent)}
       .gps-btn ha-icon{--mdc-icon-size:16px;color:var(--accent)}
       .gps-btn.spin ha-icon{animation:spin-icon 1s linear infinite}
       .battery-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:10px;font-size:10px;font-weight:700;background:color-mix(in srgb,${batteryColor} 14%,transparent);color:${batteryColor}}
       .details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;position:relative;z-index:1}
-      .detail{min-width:0;display:grid;grid-template-columns:24px minmax(0,1fr);grid-template-areas:"icon label" "icon value";column-gap:8px;align-items:center;padding:10px;border:1px solid var(--edge);border-radius:12px;background:color-mix(in srgb,var(--panel) 84%,transparent);color:var(--text);text-align:left;cursor:pointer}
+      .detail{min-width:0;display:grid;grid-template-columns:24px minmax(0,1fr);grid-template-areas:"icon label" "icon value";column-gap:8px;align-items:center;padding:10px;border:1px solid color-mix(in srgb,var(--accent) 16%,transparent);border-left:3px solid var(--accent);border-radius:12px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 6%,transparent),transparent 55%),color-mix(in srgb,var(--panel) 84%,transparent);box-shadow:0 4px 12px rgba(0,0,0,.1);color:var(--text);text-align:left;cursor:pointer}
       .detail:hover{border-color:var(--accent);transform:translateY(-1px)}
       .detail ha-icon{grid-area:icon;--mdc-icon-size:20px;color:var(--accent)}
       .detail span{grid-area:label;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:8px;font-weight:700;text-transform:uppercase}
