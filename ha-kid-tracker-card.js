@@ -1,4 +1,4 @@
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 class HAKidTrackerCard extends HTMLElement {
   constructor() {
@@ -143,10 +143,10 @@ class HAKidTrackerCard extends HTMLElement {
     const home = state === "home";
     const away = state === "not_home";
     const color = home
-      ? "var(--dashboard-success,#54d9aa)"
+      ? "var(--dashboard-success, var(--success-color, #54d9aa))"
       : away
-        ? "var(--dashboard-warning,#ffbd59)"
-        : "var(--dashboard-accent,#62b5ff)";
+        ? "var(--dashboard-warning, var(--warning-color, #ffbd59))"
+        : "var(--dashboard-accent, var(--primary-color, #62b5ff))";
     const statusLabel = home ? "Hjemme" : away ? "Ude" : this._hasData(this._config.tracker) ? state : "Ukendt";
     const pic =
       this._config.image ||
@@ -167,10 +167,10 @@ class HAKidTrackerCard extends HTMLElement {
       battery === undefined
         ? "var(--secondary-text-color)"
         : battery < 20
-          ? "var(--dashboard-danger,#ff667a)"
+          ? "var(--dashboard-danger, var(--error-color, #ff667a))"
           : battery < 45
-            ? "var(--dashboard-warning,#ffbd59)"
-            : "var(--dashboard-success,#54d9aa)";
+            ? "var(--dashboard-warning, var(--warning-color, #ffbd59))"
+            : "var(--dashboard-success, var(--success-color, #54d9aa))";
 
     const hasSteps = this._hasData(this._config.steps_today);
     const steps = this._num(this._config.steps_today) || 0;
@@ -206,7 +206,7 @@ class HAKidTrackerCard extends HTMLElement {
     const showHero = hasSteps || heroStatsHtml.length > 0;
 
     this.shadowRoot.innerHTML = `<style>
-      :host{display:block;--accent:${color};--good:var(--dashboard-success,#54d9aa);--warn:var(--dashboard-warning,#ffbd59);--danger:var(--dashboard-danger,#ff667a);--edge:var(--dashboard-border-neutral,rgba(127,145,165,.2))}
+      :host{display:block;--accent:${color};--good:var(--dashboard-success, var(--success-color, #54d9aa));--warn:var(--dashboard-warning, var(--warning-color, #ffbd59));--danger:var(--dashboard-danger, var(--error-color, #ff667a));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(127,145,165,.2)))}
       *{box-sizing:border-box}
       ha-card{position:relative;overflow:hidden;padding:18px;border-left:4px solid var(--accent);border-radius:20px;background:var(--ha-card-background,var(--card-background-color));color:var(--primary-text-color);box-shadow:var(--ha-card-box-shadow)}
       .head{display:flex;align-items:center;gap:13px}
