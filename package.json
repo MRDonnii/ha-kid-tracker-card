@@ -1,1 +1,1 @@
-{"name":"ha-kid-tracker-card","version":"0.3.0","description":"Home Assistant Lovelace custom card","license":"MIT","scripts":{"check":"node --check ha-kid-tracker-card.js"}}
+{"name":"ha-kid-tracker-card","version":"0.4.0","description":"Home Assistant Lovelace custom card","license":"MIT","scripts":{"check":"node --check ha-kid-tracker-card.js"}}

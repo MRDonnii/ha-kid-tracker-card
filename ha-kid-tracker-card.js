@@ -1,4 +1,4 @@
-const VERSION = "0.3.1";
+const VERSION = "0.4.0";
 
 class HAKidTrackerCard extends HTMLElement {
   constructor() {
@@ -13,6 +13,7 @@ class HAKidTrackerCard extends HTMLElement {
     return {
       title: "Viggo",
       entity: "person.example",
+      navigation_path: "/lovelace/home",
       tracker: "device_tracker.example_watch",
       image: "",
       location_name: "sensor.example_watch_location_name",
@@ -34,6 +35,14 @@ class HAKidTrackerCard extends HTMLElement {
       secondary_battery_label: "Ur",
       floors_up: "sensor.example_phone_floors_ascended",
       floors_down: "sensor.example_phone_floors_descended",
+      activity: "sensor.example_phone_activity",
+      battery_state: "sensor.example_phone_battery_state",
+      connection: "sensor.example_phone_connection_type",
+      ssid: "sensor.example_phone_ssid",
+      last_update: "sensor.example_phone_last_update_trigger",
+      app_version: "sensor.example_phone_app_version",
+      storage: "sensor.example_phone_storage",
+      details: [],
     };
   }
   setConfig(config) {
@@ -43,9 +52,13 @@ class HAKidTrackerCard extends HTMLElement {
   }
   set hass(hass) {
     this._hass = hass;
-    const ids = Object.values(this._config).filter(
-      (v) => typeof v === "string" && v.includes("."),
-    );
+    const ids = [];
+    const collect = (value) => {
+      if (typeof value === "string" && /^[a-z_]+\.[a-z0-9_]+$/.test(value)) ids.push(value);
+      else if (Array.isArray(value)) value.forEach(collect);
+      else if (value && typeof value === "object") Object.values(value).forEach(collect);
+    };
+    collect(this._config);
     const sig = JSON.stringify(
       ids.map((id) => [id, hass?.states?.[id]?.state]),
     );
@@ -93,7 +106,9 @@ class HAKidTrackerCard extends HTMLElement {
   }
   _time(id) {
     if (!this._hasData(id)) return "—";
-    const d = new Date(this._s(id));
+    const raw = this._s(id);
+    const numeric = Number(raw);
+    const d = new Date(Number.isFinite(numeric) && numeric > 1000000000 ? numeric * 1000 : raw);
     if (Number.isNaN(d.getTime())) return this._s(id);
     return d.toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
   }
@@ -117,6 +132,18 @@ class HAKidTrackerCard extends HTMLElement {
   }
   _stat(label, value) {
     return `<div class="stat"><span>${label}</span><b>${value}</b></div>`;
+  }
+  _entityValue(id, format) {
+    if (!this._hasData(id)) return "—";
+    const entity = this._e(id);
+    const raw = entity.state;
+    const number = Number(String(raw).replace(",", "."));
+    if (format === "time") return this._time(id);
+    if (format === "percent" && Number.isFinite(number)) return `${this._fmt(number)}%`;
+    if (format === "distance") return this._distanceLabel(id);
+    if (format === "number" && Number.isFinite(number)) return this._fmt(number, 1);
+    const unit = entity.attributes?.unit_of_measurement;
+    return `${this._esc(raw)}${unit ? ` ${this._esc(unit)}` : ""}`;
   }
   _call(id, service, data = {}) {
     if (!id) return;
@@ -165,7 +192,7 @@ class HAKidTrackerCard extends HTMLElement {
     const battery = this._num(this._config.battery);
     const batteryColor =
       battery === undefined
-        ? "var(--secondary-text-color)"
+        ? "var(--secondary-text-color,#aeb7c4)"
         : battery < 20
           ? "var(--dashboard-danger, var(--error-color, #ff667a))"
           : battery < 45
@@ -204,22 +231,41 @@ class HAKidTrackerCard extends HTMLElement {
       Number.isFinite(secondaryBattery) ? this._stat(this._esc(this._config.secondary_battery_label || "Ur"), `${this._fmt(secondaryBattery)}%`) : "",
     ].filter(Boolean);
     const showHero = hasSteps || heroStatsHtml.length > 0;
+    const deviceDetails = [
+      [this._config.activity, "Aktivitet", "mdi:run", null],
+      [this._config.battery_state, "Opladning", "mdi:battery-charging", null],
+      [this._config.connection, "Forbindelse", "mdi:access-point-network", null],
+      [this._config.ssid, "Netværk", "mdi:wifi", null],
+      [this._config.last_update, "Seneste opdatering", "mdi:update", null],
+      [this._config.app_version, "App-version", "mdi:cellphone-cog", null],
+      [this._config.storage, "Ledig lagerplads", "mdi:database", null],
+      ...(Array.isArray(this._config.details)
+        ? this._config.details.map((item) => [item.entity, item.label || "Status", item.icon || "mdi:information-outline", item.format])
+        : []),
+    ].filter(([id]) => this._hasData(id));
+    const deviceDetailsHtml = deviceDetails.map(([id, label, icon, format]) =>
+      `<button class="detail" data-entity="${this._esc(id)}"><ha-icon icon="${this._esc(icon)}"></ha-icon><span>${this._esc(label)}</span><b>${this._entityValue(id, format)}</b></button>`,
+    ).join("");
 
     this.shadowRoot.innerHTML = `<style>
-      :host{display:block;--accent:${color};--good:var(--dashboard-success, var(--success-color, #54d9aa));--warn:var(--dashboard-warning, var(--warning-color, #ffbd59));--danger:var(--dashboard-danger, var(--error-color, #ff667a));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(127,145,165,.2)))}
+      :host{display:block;--accent:${color};--good:var(--dashboard-success,var(--success-color,#54d9aa));--warn:var(--dashboard-warning,var(--warning-color,#ffbd59));--danger:var(--dashboard-danger,var(--error-color,#ff667a));--edge:var(--dashboard-border-neutral,var(--divider-color,rgba(127,145,165,.2)));--panel:var(--surface,var(--ha-card-background,var(--card-background-color,#1c1f26)));--text:var(--primary-text-color,#f5f7fb);--muted:var(--secondary-text-color,#aeb7c4);--shadow:var(--state-card-shadow,var(--ha-card-box-shadow,0 12px 30px rgba(0,0,0,.18)))}
       *{box-sizing:border-box}
-      ha-card{position:relative;overflow:hidden;padding:18px;border-left:4px solid var(--accent);border-radius:20px;background:var(--ha-card-background,var(--card-background-color));color:var(--primary-text-color);box-shadow:var(--ha-card-box-shadow)}
+      ha-card{position:relative;overflow:hidden;padding:18px;border-left:4px solid var(--accent);border-radius:20px;background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
+      ha-card:after{content:"";position:absolute;right:-34px;bottom:-38px;width:148px;height:148px;border-radius:50%;background:color-mix(in srgb,var(--accent) 10%,transparent);pointer-events:none}
       .head{display:flex;align-items:center;gap:13px}
+      .back{flex:0 0 38px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);border-radius:50%;background:color-mix(in srgb,var(--panel) 82%,transparent);color:var(--text);cursor:pointer}
+      .back:hover{border-color:var(--accent);transform:translateX(-1px)}
+      .back ha-icon{--mdc-icon-size:20px}
       .portrait{position:relative;flex:0 0 54px;width:54px;height:54px;border-radius:50%;background-size:cover;background-position:center;background-color:color-mix(in srgb,var(--accent) 18%,transparent)}
-      .portrait i{position:absolute;right:-2px;bottom:-2px;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--ha-card-background,var(--card-background-color));box-shadow:0 0 8px var(--accent)}
+      .portrait i{position:absolute;right:-2px;bottom:-2px;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);box-shadow:0 0 8px var(--accent)}
       .portrait.home i{animation:pulse-dot 1.8s ease-in-out infinite}
       .head-info{min-width:0}
       .head-info strong{display:block;font-size:17px}
       .head-info .status{margin-top:2px;font-size:12px;font-weight:700;color:var(--accent)}
-      .head-info .place{margin-top:1px;font-size:11px;color:var(--secondary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .head-info .place{margin-top:1px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .trip{margin-left:auto;text-align:right}
       .trip strong{display:block;font-size:15px}
-      .trip span{display:block;color:var(--secondary-text-color);font-size:10px}
+      .trip span{display:block;color:var(--muted);font-size:10px}
       .hero{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;margin-top:18px}
       .hero.no-ring{grid-template-columns:1fr}
       .ring{position:relative;width:120px;height:120px;flex:0 0 120px}
@@ -229,29 +275,37 @@ class HAKidTrackerCard extends HTMLElement {
       .ring.goal .fill{stroke:var(--good)}
       .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
       .ring-center strong{font-size:19px;line-height:1}
-      .ring-center span{margin-top:3px;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--secondary-text-color)}
+      .ring-center span{margin-top:3px;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
       .activity-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
       .stat{padding:9px;border:1px solid var(--edge);border-radius:12px;text-align:center}
-      .stat span{display:block;color:var(--secondary-text-color);font-size:8px;text-transform:uppercase;font-weight:700}
+      .stat span{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;font-weight:700}
       .stat b{display:block;margin-top:4px;font-size:13px}
-      .section-title{margin:16px 0 8px;color:var(--secondary-text-color);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+      .section-title{margin:16px 0 8px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
       .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
       .gps-row{display:flex;align-items:center;gap:12px}
       .gps-info{flex:1;min-width:0;display:flex;gap:14px}
-      .gps-info div span{display:block;color:var(--secondary-text-color);font-size:8px;text-transform:uppercase;font-weight:700}
+      .gps-info div span{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;font-weight:700}
       .gps-info div b{display:block;margin-top:2px;font-size:12px}
-      .gps-btn{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:9px 14px;border:1px solid var(--edge);border-radius:12px;background:transparent;color:var(--primary-text-color);font-size:11px;font-weight:700;cursor:pointer}
+      .gps-btn{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:9px 14px;border:1px solid var(--edge);border-radius:12px;background:transparent;color:var(--text);font-size:11px;font-weight:700;cursor:pointer}
       .gps-btn:hover{border-color:var(--accent)}
       .gps-btn ha-icon{--mdc-icon-size:16px;color:var(--accent)}
       .gps-btn.spin ha-icon{animation:spin-icon 1s linear infinite}
       .battery-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:10px;font-size:10px;font-weight:700;background:color-mix(in srgb,${batteryColor} 14%,transparent);color:${batteryColor}}
+      .details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;position:relative;z-index:1}
+      .detail{min-width:0;display:grid;grid-template-columns:24px minmax(0,1fr);grid-template-areas:"icon label" "icon value";column-gap:8px;align-items:center;padding:10px;border:1px solid var(--edge);border-radius:12px;background:color-mix(in srgb,var(--panel) 84%,transparent);color:var(--text);text-align:left;cursor:pointer}
+      .detail:hover{border-color:var(--accent);transform:translateY(-1px)}
+      .detail ha-icon{grid-area:icon;--mdc-icon-size:20px;color:var(--accent)}
+      .detail span{grid-area:label;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:8px;font-weight:700;text-transform:uppercase}
+      .detail b{grid-area:value;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
       @keyframes pulse-dot{50%{opacity:.4;transform:scale(1.4)}}
       @keyframes spin-icon{to{transform:rotate(360deg)}}
-      @media(max-width:480px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}.stats{grid-template-columns:repeat(2,1fr)}.gps-row{flex-direction:column;align-items:stretch}.gps-info{justify-content:center}}
+      @media(max-width:680px){.details{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:480px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}.stats{grid-template-columns:repeat(2,1fr)}.gps-row{flex-direction:column;align-items:stretch}.gps-info{justify-content:center}.details{grid-template-columns:1fr}}
       @media(prefers-reduced-motion:reduce){*{animation:none!important}}
     </style>
     <ha-card>
       <div class="head">
+        ${this._config.navigation_path ? `<button class="back" data-back title="Tilbage"><ha-icon icon="mdi:arrow-left"></ha-icon></button>` : ""}
         <div class="portrait ${home ? "home" : ""}" style="${pic ? `background-image:url('${this._esc(pic)}')` : ""}"><i></i></div>
         <div class="head-info">
           <strong>${this._esc(this._config.title)}</strong>
@@ -290,10 +344,22 @@ class HAKidTrackerCard extends HTMLElement {
       </div>`
           : ""
       }
+      ${deviceDetails.length ? `<div class="section-title">Enhed og status</div><div class="details">${deviceDetailsHtml}</div>` : ""}
     </ha-card>`;
     this.shadowRoot
       .querySelector("[data-refresh]")
       ?.addEventListener("click", () => this._refreshGps());
+    this.shadowRoot.querySelector("[data-back]")?.addEventListener("click", () => {
+      history.pushState(null, "", this._config.navigation_path);
+      window.dispatchEvent(new Event("location-changed"));
+    });
+    this.shadowRoot.querySelectorAll("[data-entity]").forEach((element) =>
+      element.addEventListener("click", () => {
+        const event = new Event("hass-more-info", { bubbles: true, composed: true });
+        event.detail = { entityId: element.dataset.entity };
+        this.dispatchEvent(event);
+      }),
+    );
   }
 }
 
@@ -303,7 +369,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "ha-kid-tracker-card",
   name: "HA Kid Tracker Card",
-  description: "Animeret sporingskort til smartwatch: lokation, batteri, GPS og aktivitetsring",
+  description: "Komplet personkort med lokation, hjemtur, aktivitet, batterier, GPS og enhedsstatus",
   preview: true,
 });
 console.info(
